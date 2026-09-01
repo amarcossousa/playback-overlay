@@ -1,0 +1,51 @@
+## ===== .NET / C# (server) =====
+bin/
+obj/
+publish/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+*.nupkg
+**/packages/*
+!**/packages/build/
+
+## ===== Node / JS / cliente web (se houver) =====
+node_modules/
+dist/
+build/
+.cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json.bak
+
+## ===== Ambiente / IDEs =====
+.vs/
+.idea/
+*.swp
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+## ===== Sistema operacional =====
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+## ===== Logs e dados locais de execução =====
+*.log
+server.log
+*.tmp
+
+## ===== Segredos / configs específicas de máquina =====
+.env
+.env.local
+*.pfx
+appsettings.Development.json
