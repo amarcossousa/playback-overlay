@@ -1,25 +1,510 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap"
-      rel="stylesheet"
-    />
-    <title>Playback Overlay</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script>
-      const HOST = 'localhost'
-      const PORT = 9764
-      const IS_SECURE = false
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-      const WS_URL = `ws${IS_SECURE ? 's' : ''}://${HOST}:${PORT}`
+    <title>MARCZERAA - Now Playing</title>
+
+    <style>
+        :root {
+            --background: rgba(20, 20, 19, 0.92);
+            --text-primary: #f2f0e8;
+            --text-secondary: rgba(242, 240, 232, 0.62);
+            --progress-background: rgba(242, 240, 232, 0.16);
+            --progress-fill: #b7a66a;
+
+            --width: 360px;
+            --cover-size: 58px;
+            --radius: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+
+            background: transparent;
+
+            font-family:
+                Inter,
+                Arial,
+                Helvetica,
+                sans-serif;
+        }
+
+        /*
+         * PLAYER
+         */
+
+        #player {
+            width: var(--width);
+
+            display: flex;
+            align-items: center;
+            gap: 13px;
+
+            padding: 10px 12px;
+
+            background: var(--background);
+
+            border-radius: var(--radius);
+
+            opacity: 0;
+            transform: translateY(6px);
+
+            transition:
+                opacity 280ms ease,
+                transform 280ms ease;
+        }
+
+        #player.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /*
+         * CAPA
+         */
+
+        #cover {
+            width: var(--cover-size);
+            height: var(--cover-size);
+
+            flex: 0 0 var(--cover-size);
+
+            object-fit: cover;
+
+            border-radius: 5px;
+
+            background: rgba(255, 255, 255, 0.05);
+
+            opacity: 0;
+
+            transition:
+                opacity 250ms ease,
+                transform 300ms ease;
+        }
+
+        #cover.visible {
+            opacity: 1;
+        }
+
+        /*
+         * CONTEÚDO
+         */
+
+        #content {
+            min-width: 0;
+            flex: 1;
+        }
+
+        #title {
+            width: 100%;
+
+            color: var(--text-primary);
+
+            font-size: 15px;
+            font-weight: 600;
+            line-height: 19px;
+
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #artist {
+            width: 100%;
+
+            margin-top: 1px;
+
+            color: var(--text-secondary);
+
+            font-size: 12px;
+            font-weight: 400;
+            line-height: 17px;
+
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /*
+         * PROGRESSO
+         */
+
+        #progress-container {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+
+            width: 100%;
+
+            margin-top: 7px;
+        }
+
+        #progress-bar {
+            position: relative;
+
+            flex: 1;
+
+            height: 3px;
+
+            overflow: hidden;
+
+            background: var(--progress-background);
+
+            border-radius: 999px;
+        }
+
+        #progress {
+            position: absolute;
+
+            left: 0;
+            top: 0;
+
+            width: 0%;
+            height: 100%;
+
+            background: var(--progress-fill);
+
+            border-radius: inherit;
+
+            transition: width 250ms linear;
+        }
+
+        #time {
+            flex: 0 0 auto;
+
+            color: var(--text-secondary);
+
+            font-size: 9px;
+            font-weight: 400;
+
+            line-height: 12px;
+
+            white-space: nowrap;
+        }
+
+        /*
+         * TROCA DE MÚSICA
+         */
+
+        #player.song-change #cover {
+            transform: scale(0.94);
+        }
+
+        #player.song-change #title,
+        #player.song-change #artist {
+            opacity: 0.35;
+        }
+
+        #title,
+        #artist {
+            transition: opacity 180ms ease;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="player">
+
+        <img
+            id="cover"
+            alt=""
+        >
+
+        <div id="content">
+
+            <div id="title">
+                ---
+            </div>
+
+            <div id="artist">
+                ---
+            </div>
+
+            <div id="progress-container">
+
+                <div id="progress-bar">
+                    <div id="progress"></div>
+                </div>
+
+                <div id="time">
+                    0:00 / 0:00
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        "use strict";
+
+        /*
+         * CONFIGURAÇÃO
+         */
+
+        const WS_HOST = "localhost";
+        const WS_PORT = 9764;
+
+        const WS_URL = `ws://${WS_HOST}:${WS_PORT}`;
+
+        /*
+         * ELEMENTOS
+         */
+
+        const player = document.getElementById("player");
+        const cover = document.getElementById("cover");
+        const title = document.getElementById("title");
+        const artist = document.getElementById("artist");
+        const progress = document.getElementById("progress");
+        const time = document.getElementById("time");
+
+        /*
+         * ESTADO
+         */
+
+        let socket = null;
+
+        let currentTitle = "";
+        let currentArtist = "";
+
+        let position = 0;
+        let duration = 0;
+
+        let isPlaying = true;
+
+        let lastUpdate = performance.now();
+
+        /*
+         * FORMATA TEMPO
+         */
+
+        function formatTime(seconds) {
+            seconds = Math.max(0, Math.floor(seconds));
+
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+
+            return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
+        }
+
+        /*
+         * ATUALIZA INTERFACE
+         */
+
+        function updateProgress() {
+            if (duration <= 0) {
+                progress.style.width = "0%";
+                time.textContent = "0:00 / 0:00";
+                return;
+            }
+
+            const percentage = Math.min(
+                100,
+                Math.max(0, (position / duration) * 100)
+            );
+
+            progress.style.width = `${percentage}%`;
+
+            time.textContent =
+                `${formatTime(position)} / ${formatTime(duration)}`;
+        }
+
+        /*
+         * ATUALIZA MÚSICA
+         */
+
+        function updateSong(data) {
+            const newTitle = data.Title || "Sem título";
+            const newArtist = data.Artist || "Artista desconhecido";
+
+            const songChanged =
+                newTitle !== currentTitle ||
+                newArtist !== currentArtist;
+
+            currentTitle = newTitle;
+            currentArtist = newArtist;
+
+            /*
+             * Pequena animação quando muda a música
+             */
+
+            if (songChanged) {
+                player.classList.add("song-change");
+
+                setTimeout(() => {
+                    title.textContent = newTitle;
+                    artist.textContent = newArtist;
+
+                    player.classList.remove("song-change");
+                }, 100);
+
+            } else {
+                title.textContent = newTitle;
+                artist.textContent = newArtist;
+            }
+
+            /*
+             * Posição e duração
+             */
+
+            position = Number(data.Position) || 0;
+            duration = Number(data.Duration) || 0;
+
+            /*
+             * Estado de reprodução
+             */
+
+            if (typeof data.IsPlaying !== "undefined") {
+                isPlaying =
+                    data.IsPlaying === true ||
+                    data.IsPlaying === 1 ||
+                    data.IsPlaying === "1";
+            }
+
+            /*
+             * Capa
+             */
+
+            if (data.Thumbnail) {
+                const imageSource =
+                    `data:image/png;base64,${data.Thumbnail}`;
+
+                /*
+                 * Só troca a imagem se realmente mudou.
+                 */
+
+                if (cover.src !== imageSource) {
+                    cover.src = imageSource;
+                }
+
+                cover.classList.add("visible");
+            }
+
+            /*
+             * Mostra o player
+             */
+
+            player.classList.add("visible");
+
+            updateProgress();
+
+            lastUpdate = performance.now();
+        }
+
+        /*
+         * WEBSOCKET
+         */
+
+        function connect() {
+            /*
+             * Evita criar duas conexões simultâneas.
+             */
+
+            if (
+                socket &&
+                (
+                    socket.readyState === WebSocket.OPEN ||
+                    socket.readyState === WebSocket.CONNECTING
+                )
+            ) {
+                return;
+            }
+
+            console.log("Conectando ao PlaybackDataServer...");
+
+            socket = new WebSocket(WS_URL);
+
+            socket.onopen = () => {
+                console.log("PlaybackDataServer conectado.");
+            };
+
+            socket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+
+                    updateSong(data);
+
+                } catch (error) {
+                    console.error(
+                        "Erro ao processar dados do PlaybackDataServer:",
+                        error
+                    );
+                }
+            };
+
+            socket.onerror = (error) => {
+                console.error(
+                    "Erro no WebSocket:",
+                    error
+                );
+            };
+
+            socket.onclose = () => {
+                console.log(
+                    "PlaybackDataServer desconectado. Tentando reconectar..."
+                );
+
+                socket = null;
+
+                /*
+                 * Tenta novamente depois de 2 segundos.
+                 */
+
+                setTimeout(connect, 2000);
+            };
+        }
+
+        /*
+         * ANIMAÇÃO DA BARRA
+         *
+         * O servidor fornece Position periodicamente.
+         *
+         * Entre uma atualização e outra,
+         * avançamos localmente a posição.
+         */
+
+        function animationLoop(now) {
+            const elapsed = (now - lastUpdate) / 1000;
+
+            if (isPlaying && duration > 0) {
+                const estimatedPosition = position + elapsed;
+
+                if (estimatedPosition <= duration) {
+                    const percentage =
+                        (estimatedPosition / duration) * 100;
+
+                    progress.style.width =
+                        `${Math.min(100, percentage)}%`;
+
+                    time.textContent =
+                        `${formatTime(estimatedPosition)} / ${formatTime(duration)}`;
+                }
+            }
+
+            requestAnimationFrame(animationLoop);
+        }
+
+        /*
+         * INICIALIZAÇÃO
+         */
+
+        connect();
+
+        requestAnimationFrame(animationLoop);
     </script>
-    <script type="module" src="./src/main.tsx"></script>
-  </body>
+
+</body>
 </html>
