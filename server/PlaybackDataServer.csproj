@@ -6,13 +6,20 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <UseWindowsForms>true</UseWindowsForms>
+
+        <ApplicationIcon>Assets\playback-overlay.ico</ApplicationIcon>
     </PropertyGroup>
 
-
     <ItemGroup>
-        <PackageReference Include="NetCoreServer" Version="8.0.7"/>
-        <PackageReference Include="NPSMLib" Version="0.9.14"/>
+        <PackageReference Include="NetCoreServer" Version="8.0.7" />
+        <PackageReference Include="NPSMLib" Version="0.9.14" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Content Include="Assets\playback-overlay.ico">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        </Content>
+    </ItemGroup>
 
 </Project>

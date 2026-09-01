@@ -20,7 +20,7 @@ namespace PlaybackDataServer.App
 
             _trayIcon = new NotifyIcon
             {
-                Icon = SystemIcons.Application,
+                Icon = LoadTrayIcon(),
                 Text = "Playback Overlay Server (parado)",
                 Visible = true
             };
@@ -31,6 +31,21 @@ namespace PlaybackDataServer.App
             _trayIcon.DoubleClick += OnToggleServer;
 
             StartServer();
+        }
+
+        private static Icon LoadTrayIcon()
+        {
+            var iconPath = Path.Combine(
+                AppContext.BaseDirectory,
+                "Assets",
+                "playback-overlay.ico");
+
+            if (File.Exists(iconPath))
+            {
+                return new Icon(iconPath);
+            }
+
+            return SystemIcons.Application;
         }
 
         private void OnTrayIconMouseUp(object? sender, MouseEventArgs e)
