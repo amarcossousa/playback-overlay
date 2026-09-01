@@ -2,20 +2,21 @@
 {
     internal static class Program
     {
+        [STAThread]
         public static void Main(string[] args)
         {
-            using var app = new App.App();
-            app.Start();
+            var logDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "PlaybackDataServer");
+            Directory.CreateDirectory(logDir);
 
-            Console.WriteLine("Write \"stop\" or close console to stop the server.");
-            while (true)
-            {
-                var line = Console.ReadLine();
-                if (line == "stop")
-                {
-                    break;
-                }
-            }
+            var logPath = Path.Combine(logDir, "server.log");
+            var logWriter = new StreamWriter(logPath, append: true) { AutoFlush = true };
+            Console.SetOut(logWriter);
+            Console.SetError(logWriter);
+
+            ApplicationConfiguration.Initialize();
+            System.Windows.Forms.Application.Run(new App.TrayApp());
         }
     }
 }

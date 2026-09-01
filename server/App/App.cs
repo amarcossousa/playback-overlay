@@ -23,7 +23,10 @@ namespace PlaybackDataServer.App
         private NowPlayingSession? _npSession;
         private MediaPlaybackDataSource? _playback;
         private string _lastSentHash = string.Empty;
-        private Timer? _pollTimer;
+
+        // Qualificado explicitamente: System.Windows.Forms também define "Timer",
+        // e com UseWindowsForms habilitado o compilador não resolve a ambiguidade.
+        private System.Threading.Timer? _pollTimer;
 
         public void Start()
         {
@@ -36,7 +39,7 @@ namespace PlaybackDataServer.App
             _server.ClientConnected += OnServerClientConnected;
             _npSessionManager.SessionListChanged += OnNowPlayingSessionListChanged;
 
-            _pollTimer = new Timer(_ => PollSession(), null, PollInterval, PollInterval);
+            _pollTimer = new System.Threading.Timer(_ => PollSession(), null, PollInterval, PollInterval);
         }
 
         public void Stop()
@@ -84,14 +87,10 @@ namespace PlaybackDataServer.App
             SendMediaData();
         }
 
-        // Chamado pelo Timer a cada PollInterval. Não depende de nenhum evento da NPSM,
-        // então cobre o caso em que trocar de faixa no mesmo app não dispara nada.
         private void PollSession()
         {
             try
             {
-                // Reconsulta a sessão atual do sistema; se o app trocou (ex.: o Deezer
-                // recriou a sessão internamente) isso troca _playback também.
                 var current = _npSessionManager.CurrentSession;
 
                 lock (_sessionLock)
@@ -134,7 +133,6 @@ namespace PlaybackDataServer.App
                 var progressLine =
                     $"Now playing: {info.Artist} - {info.Title} ({timeline.Position.Format()}/{timeline.EndTime.Format()})";
 
-                // Evita spam idêntico no console a cada tick de 1s do polling.
                 var hash = $"{info.Artist}|{info.Title}|{timeline.EndTime}|{state.PlaybackState}";
                 var isNewTrackOrState = hash != _lastSentHash;
 
@@ -185,8 +183,6 @@ namespace PlaybackDataServer.App
             }
             catch (Exception ex)
             {
-                // Nunca deixar exceção subir para o handler de evento COM/WinRT ou para
-                // o callback do Timer: pode matar a thread e travar futuras notificações.
                 Console.WriteLine($"Error while sending media data: {ex}");
             }
         }
