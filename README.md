@@ -6,7 +6,7 @@ Este fork monitora a sessão de mídia ativa do Windows e envia metadados da rep
 
 > Este projeto não usa a API oficial do Deezer, Spotify ou YouTube. A compatibilidade depende de o aplicativo expor corretamente uma sessão de mídia para o Windows.
 
-![Playback Overlay](docs/hero.png)
+![Preview do Playback Overlay](docs/hero-v2.png)
 
 ## Destaques deste fork
 
