@@ -71,6 +71,16 @@
         }
 
         /*
+        * Há uma faixa carregada, mas ela está pausada:
+        * esconde visualmente o overlay.
+        */
+        #player.visible:not(.playing) {
+            opacity: 0;
+            transform: translateY(6px);
+            pointer-events: none;
+        }
+
+        /*
          * CAPA
          */
 
@@ -372,11 +382,17 @@
                     data.IsPlaying === true ||
                     data.IsPlaying === 1 ||
                     data.IsPlaying === "1";
+            } else {
+                isPlaying = false;
             }
 
             /*
-             * Capa
-             */
+            * Mostra o overlay somente quando a faixa estiver em reprodução.
+            *
+            * - visible: recebemos dados válidos de uma faixa
+            * - playing: a faixa está tocando
+            */
+            player.classList.toggle("playing", isPlaying);
 
             if (data.Thumbnail) {
                 const imageSource =
